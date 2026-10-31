@@ -1,0 +1,794 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AI & ML Question Cards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen card stack (header, progress, stage, controls). The results view is a scrolling list. */
+:root{
+  --bg:#E9EEF3;
+  --surface:#FFFFFF;
+  --ink:#16213A;
+  --muted:#58647F;
+  --rule:#C5CEDB;
+  --hover:#F1F4F8;
+  --know:#14796A;
+  --know-bg:#DDF1EC;
+  --dont:#C23A32;
+  --dont-bg:#FBE5E3;
+  --shadow:0 1px 0 rgba(22,33,58,.06),0 12px 28px -14px rgba(22,33,58,.4);
+  --f-display:'Literata',Georgia,'Times New Roman',serif;
+  --f-ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1424;--surface:#182036;--ink:#E7ECF6;--muted:#9AA6C0;--rule:#2C3756;--hover:#202A45;
+    --know:#58CDB4;--know-bg:#12332F;--dont:#FF8A80;--dont-bg:#3A1E22;
+    --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 28px -14px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1424;--surface:#182036;--ink:#E7ECF6;--muted:#9AA6C0;--rule:#2C3756;--hover:#202A45;
+  --know:#58CDB4;--know-bg:#12332F;--dont:#FF8A80;--dont-bg:#3A1E22;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 28px -14px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+html,body{height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.5 var(--f-ui);
+  padding-block:12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;
+}
+button{font:inherit;color:inherit}
+h1,h2,h3,p,ul,ol{margin:0}
+
+.app{width:100%;max-width:480px;margin-inline:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.view{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.top>div{min-width:0}
+.code{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:600 21px/1.2 var(--f-display);text-wrap:balance;margin-top:2px}
+.sub{font-size:13px;color:var(--muted);margin-top:2px}
+.nav{flex:none;min-height:40px;padding:0 14px;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:500;font-size:14px}
+.nav:hover{background:var(--hover)}
+
+.prog{display:flex;flex-direction:column;gap:6px}
+.track{height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.fill{height:100%;width:0;background:var(--ink);transition:width .25s ease}
+.tally{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.tally b{font-weight:500}
+.tally .k b{color:var(--know)}
+.tally .d b{color:var(--dont)}
+
+/* stage and cards */
+.stage{position:relative;flex:1;min-height:340px}
+.card{
+  position:absolute;inset:0 0 22px 0;
+  display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.card.shell{pointer-events:none}
+.card.s1{transform:translateY(11px) scale(.955);opacity:.92}
+.card.s2{transform:translateY(22px) scale(.91);opacity:.8}
+.card.top{
+  z-index:5;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;
+  transition:transform .2s ease;animation:rise .22s ease-out;
+}
+.card.top.drag{transition:none;cursor:grabbing}
+@keyframes rise{from{transform:translateY(10px) scale(.96)}to{transform:none}}
+
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px dashed var(--rule)}
+.card-top .l{display:flex;align-items:baseline;gap:10px;min-width:0}
+.num{font:500 12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.topic{font:500 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marks{flex:none;font:500 12px var(--f-mono);color:var(--dont);border:1.5px solid var(--dont);border-radius:999px;padding:2px 10px;white-space:nowrap}
+
+.card-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.q{font:400 19px/1.45 var(--f-display);text-wrap:pretty}
+.ops{padding-left:1.6em;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.ctx{font-size:14px;color:var(--muted)}
+.mono-block{font:400 14px/1.6 var(--f-mono);background:var(--bg);border-radius:8px;padding:10px 12px}
+.quote{font:400 15px/1.5 var(--f-display);border-left:2px solid var(--rule);padding:2px 0 2px 12px}
+.quote small{display:block;font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.alts{border-top:1px dashed var(--rule);padding-top:12px;display:flex;flex-direction:column;gap:6px}
+.alts h3{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.alts ul{padding-left:1.1em;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;touch-action:pan-x pan-y}
+.tbl table,.cm{border-collapse:collapse;font:400 12px var(--f-mono);font-variant-numeric:tabular-nums;width:100%}
+.tbl th,.tbl td,.cm th,.cm td{padding:6px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl thead th,.cm thead th{font-weight:500;color:var(--muted);background:var(--bg)}
+.tbl tbody tr:last-child td,.cm tbody tr:last-child td,.cm tbody tr:last-child th{border-bottom:0}
+.tbl td:last-child.t{text-align:left}
+.cm{max-width:300px;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.cm th,.cm td{text-align:center}
+.cm tbody th{text-align:left;font-weight:500;color:var(--muted);background:var(--bg)}
+.cm td{font-weight:500;font-size:14px}
+
+.card-foot{padding:10px 16px 12px;border-top:1px dashed var(--rule)}
+.papers{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.papers li{font:400 11px var(--f-mono);text-align:center;padding:4px 2px;border-radius:6px;white-space:nowrap;border:1px dashed var(--rule);color:var(--muted)}
+.papers li.on{background:var(--ink);border:1px solid var(--ink);color:var(--surface)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.stamp{
+  position:absolute;top:58px;z-index:3;padding:3px 10px;border:3px solid;border-radius:6px;
+  font:600 15px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;
+  opacity:0;pointer-events:none;background:var(--surface);
+}
+.stamp.know{right:16px;color:var(--know);transform:rotate(8deg)}
+.stamp.dont{left:16px;color:var(--dont);transform:rotate(-8deg)}
+
+/* controls */
+.controls{display:grid;grid-template-columns:1fr auto 1fr;gap:10px}
+.btn{
+  min-height:50px;padding:0 16px;border-radius:12px;border:1.5px solid var(--rule);background:var(--surface);
+  font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:hover:not(:disabled){background:var(--hover)}
+.btn:focus-visible,.nav:focus-visible,.tab:focus-visible,summary:focus-visible,.tbl:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.know{border-color:var(--know);color:var(--know)}
+.btn.know:hover:not(:disabled){background:var(--know-bg)}
+.btn.dont{border-color:var(--dont);color:var(--dont)}
+.btn.dont:hover:not(:disabled){background:var(--dont-bg)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.primary:hover:not(:disabled){background:var(--ink);opacity:.9}
+.btn.small{min-height:40px;font-size:14px;padding:0 12px}
+.btn.undo{min-width:76px;font-size:14px}
+.hint{font-size:12px;color:var(--muted);text-align:center}
+
+.done{position:absolute;inset:0 0 22px 0;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:24px;background:var(--surface);border:1px dashed var(--rule);border-radius:14px}
+.done h2{font:600 22px/1.25 var(--f-display)}
+.done p{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+
+/* results */
+.review{overflow-y:auto;padding-bottom:12px;gap:14px}
+.review h2{font:600 22px/1.25 var(--f-display)}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--rule)}
+.bar i{display:block;height:100%}
+.bar .bk{background:var(--know)}
+.bar .bd{background:var(--dont)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font:400 12px var(--f-mono);font-variant-numeric:tabular-nums}
+.legend .k{color:var(--know)}
+.legend .d{color:var(--dont)}
+.legend .n{color:var(--muted)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tab{min-height:44px;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:500;font-size:14px;padding:0 6px}
+.tab[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tab .c{font-family:var(--f-mono);font-variant-numeric:tabular-nums;margin-left:4px}
+.score{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc{display:flex;flex-direction:column;gap:2px;min-width:0;padding:14px;border-radius:14px;border:1.5px solid}
+.sc.get{border-color:var(--know);background:var(--know-bg);color:var(--know)}
+.sc.lose{border-color:var(--dont);background:var(--dont-bg);color:var(--dont)}
+.sc .lab{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase}
+.sc .big{font:600 40px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.sc .of{font:400 12px var(--f-mono);color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+.subtotal{font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+.list{border-top:1px solid var(--rule)}
+.it{border-bottom:1px solid var(--rule)}
+.it summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 2px;min-height:48px}
+.it summary::-webkit-details-marker{display:none}
+.it .t{flex:1;min-width:0;font-weight:500}
+.it .mk{flex:none;font:400 12px var(--f-mono);color:var(--muted)}
+.chev{flex:none;color:var(--muted);transition:transform .15s}
+.it[open] .chev{transform:rotate(180deg)}
+.it-body{padding:4px 2px 18px;display:flex;flex-direction:column;gap:14px}
+.it-body .q{font-size:17px}
+.empty{padding:22px 2px;color:var(--muted)}
+.save{font-size:12px;color:var(--muted)}
+
+.tabs.two{grid-template-columns:1fr 1fr}
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:8px;border-top:2px solid var(--ink);font:600 18px/1.3 var(--f-display)}
+.sec-h span{font:400 12px var(--f-mono);letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+.opt{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:12px 14px}
+.opt-h{display:flex;flex-direction:column;gap:2px;padding-bottom:10px;border-bottom:1px dashed var(--rule)}
+.opt-h h4{font:600 15px/1.3 var(--f-ui)}
+.meta{display:flex;flex-direction:column;gap:1px;font:400 12px var(--f-mono);color:var(--muted)}
+.opt .empty{padding:12px 0 2px}
+.pt{border-bottom:1px solid var(--rule)}
+.pt:last-child{border-bottom:0}
+.pt summary{list-style:none;cursor:pointer;display:block;padding:10px 0;min-height:48px}
+.pt summary::-webkit-details-marker{display:none}
+.pt .row1{display:flex;align-items:center;gap:10px}
+.pt .lbl{flex:none;min-width:38px;text-align:center;font:500 12px var(--f-mono);padding:2px 6px;border-radius:6px;border:1px dashed var(--muted);color:var(--muted)}
+.pt.rep .lbl{background:var(--ink);border:1px solid var(--ink);color:var(--bg)}
+.pt .t{flex:1;min-width:0;font-weight:500}
+.pt.rep .t{font-weight:600}
+.pt .mk{flex:none;font:400 12px var(--f-mono);color:var(--muted)}
+.pt[open] .chev{transform:rotate(180deg)}
+.pt .row2{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;flex-wrap:wrap;margin-top:6px}
+.locs{display:flex;flex-wrap:wrap;gap:4px}
+.chip{position:relative;font:400 11px var(--f-mono);padding:2px 6px;border-radius:6px;border:1px dashed var(--rule);color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--hover);border:1px solid var(--rule);color:var(--ink)}
+.st{font:500 11px var(--f-mono);letter-spacing:.04em}
+.st.know{color:var(--know)}
+.st.dont{color:var(--dont)}
+.st.none{color:var(--muted)}
+.pt summary:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+@media (max-width:380px){
+  .q{font-size:18px}
+  h1{font-size:19px}
+}
+@media (prefers-reduced-motion: reduce){
+  .card.top{animation:none;transition:none}
+  .fill,.chev{transition:none}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="code">20CS51I / 20CS51IT</div>
+      <h1>AI &amp; ML question cards</h1>
+      <p class="sub">29 questions from 3 papers, repeats merged</p>
+    </div>
+  </header>
+
+  <nav class="tabs" id="nav" aria-label="Views">
+    <button class="tab" type="button" data-view="swipe" aria-pressed="true">Cards</button>
+    <button class="tab" type="button" data-view="review" aria-pressed="false">Results</button>
+    <button class="tab" type="button" data-view="repeat" aria-pressed="false">All 3 papers</button>
+  </nav>
+
+  <div class="prog" aria-live="polite">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="tally" id="tally"></div>
+  </div>
+
+  <section id="swipeView" class="view">
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button id="btnKnow" class="btn know" type="button"><span aria-hidden="true">←</span> Know it</button>
+      <button id="btnUndo" class="btn undo" type="button">Undo</button>
+      <button id="btnDont" class="btn dont" type="button">Don’t know <span aria-hidden="true">→</span></button>
+    </div>
+    <p class="hint">Swipe left if you know it, right if you don’t. Arrow keys work too.</p>
+  </section>
+
+  <section id="reviewView" class="view review" hidden></section>
+  <section id="repeatView" class="view review" hidden></section>
+</div>
+
+<script>
+(function(){
+  var PAPERS=['Sep 2023','Nov/Dec 2025','Apr/May 2026'];
+
+  function tbl(head,rows){
+    return '<div class="tbl" data-noswipe tabindex="0" role="region" aria-label="Data table"><table><thead><tr>'+
+      head.map(function(h){return '<th scope="col">'+h+'</th>'}).join('')+'</tr></thead><tbody>'+
+      rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>'}).join('')+'</tr>'}).join('')+
+      '</tbody></table></div>';
+  }
+  function cm(a,b,c,d){
+    return '<table class="cm"><thead><tr><th></th><th scope="col">Actual 1</th><th scope="col">Actual 0</th></tr></thead><tbody>'+
+      '<tr><th scope="row">Predicted 1</th><td>'+a+'</td><td>'+b+'</td></tr>'+
+      '<tr><th scope="row">Predicted 0</th><td>'+c+'</td><td>'+d+'</td></tr></tbody></table>';
+  }
+  function ol(items){
+    return '<ol class="ops" type="i">'+items.map(function(i){return '<li>'+i+'</li>'}).join('')+'</ol>';
+  }
+
+  var Q=[
+    {id:'q1',topic:'AI basics',short:'AI and its applications',marks:'10',p:[1,1,1],
+      q:'Describe AI and its applications in various fields.',
+      alt:['Apr/May 2026 asked: “Write any 10 applications of AI.”']},
+    {id:'q2',topic:'AI basics',short:'Big Data and its V’s',marks:'5',p:[0,0,1],
+      q:'What is Big Data? Write the V’s of Big Data.'},
+    {id:'q3',topic:'AI basics',short:'AI vs traditional software life cycle',marks:'5 / 10',p:[1,1,1],
+      q:'How does the AI software development life cycle differ from traditional software development? Explain.',
+      alt:['Sep 2023 and Nov/Dec 2025 asked this twice in the same paper, once for 5 marks and once for 10 marks.','Apr/May 2026: 5 marks.']},
+    {id:'q4',topic:'AI basics',short:'Challenges of Machine Learning',marks:'5',p:[1,1,0],
+      q:'Summarize the challenges associated with Machine Learning.'},
+
+    {id:'q5',topic:'Python & pandas',short:'pandas operations on auto-mpg.csv',marks:'10',p:[1,1,1],
+      q:'Using pandas, perform these operations on the car manufacturing dataset “auto-mpg.csv”.',
+      x:ol(['Read data from a file.','Calculate the mean value of “horsepower”.','Calculate the standard deviation of “acceleration”.','Get the number of cars manufactured in each year.'])+
+        tbl(['mpg','cylinders','displacement','horsepower','weight','acceleration','model year','car name'],[
+          ['18','8','307','130','3504','12','71','Chevrolet'],
+          ['15','8','350','165','3693','11.5','70','Skylark'],
+          ['18','8','318','150','3436','11','72','Plymouth'],
+          ['17','8','302','140','3449','10.5','70','Ford'],
+          ['14','8','455','225','4425','10','71','Pontiac'],
+          ['15','8','390','190','3850','8.5','70','Ambassador']]),
+      alt:['Apr/May 2026 version: read data from an existing file; statistical details of the dataset; get all cars with 8 cylinders; number of cars manufactured in each year. Its sample table also has an origin column.']},
+    {id:'q6',topic:'Python & pandas',short:'NumPy aggregation functions',marks:'10',p:[0,0,1],
+      q:'Explain the array aggregation functions of the NumPy module.'},
+    {id:'q7',topic:'Python & pandas',short:'Two pandas Series operations',marks:'10',p:[1,1,0],
+      q:'Create two series as shown using the pd.Series() function.',
+      x:'<div class="mono-block">Series A = [20, 30, 40, 50, 60]<br>Series B = [50, 60, 70, 80, 90]</div>'+
+        ol(['Get the items not common to both.','Identify the smallest and largest element in Series A.','Find the sum of Series B.','Calculate the mean of Series A.','Find the median of Series B.'])},
+
+    {id:'q8',topic:'Data preparation',short:'Handling missing values',marks:'10',p:[1,1,1],
+      q:'Elaborate on how missing values in a dataset can be handled.',
+      x:'<p class="ctx">The paper adds: missing data can lead to biased or incorrect results in an analysis or a machine learning model, so handling it is a crucial pre-processing step.</p>'},
+    {id:'q9',topic:'Data preparation',short:'Python code: check and fill missing values',marks:'10',p:[0,0,1],
+      q:'The data gathered by a company is not clean for analysis. Write Python code to perform these operations (assume the dataset has missing values).',
+      x:ol(['Check for missing values.','Replace missing values with the mean value.'])},
+    {id:'q10',topic:'Data preparation',short:'Handling outliers',marks:'10',p:[0,0,1],
+      q:'How can outliers in a dataset be handled? Explain.'},
+    {id:'q11',topic:'Data preparation',short:'Steps before training a model',marks:'10',p:[1,1,0],
+      q:'A dataset is given to you for creating a machine learning model. What steps are followed before using the data for training the model? Elaborate each step.'},
+    {id:'q12',topic:'Data preparation',short:'Exploration, pre-processing and splitting',marks:'10',p:[1,1,0],
+      q:'Explain how data exploration, pre-processing of data and splitting of data are performed on datasets.'},
+
+    {id:'q13',topic:'Statistics & maths',short:'Univariate and multivariate data',marks:'10',p:[1,1,0],
+      q:'Referring to the number of variables or features in a dataset and the focus of analysis, explain univariate and multivariate data types with examples.'},
+    {id:'q14',topic:'Statistics & maths',short:'Credit card dataset summary',marks:'10',p:[0,0,1],
+      q:'Analyze and explain the statistical metrics from the summary of the credit card dataset below.',
+      x:tbl(['','Age','Annual Income (k$)','Spending Score (1-100)'],[
+        ['count','200','200','200'],
+        ['mean','38.85','60.56','50.2'],
+        ['std','13.969007','26.264721','25.823522'],
+        ['min','18','15','1'],
+        ['25%','28.75','41.5','34.75'],
+        ['50%','36','61.5','50'],
+        ['75%','49','78','73'],
+        ['max','70','137','99']])},
+    {id:'q15',topic:'Statistics & maths',short:'Scalars, vectors, matrices, tensors, gradients',marks:'10',p:[1,1,0],
+      q:'Explain with examples: scalars, vectors, matrices, tensors and gradients in linear algebra.'},
+
+    {id:'q16',topic:'ML concepts',short:'Supervised vs unsupervised learning',marks:'5 / 10',p:[1,1,1],
+      q:'Explain supervised and unsupervised learning with examples.',
+      alt:['Sep 2023 and Nov/Dec 2025: 5 marks. Apr/May 2026 asked it as “Differentiate” for 10 marks.']},
+    {id:'q17',topic:'ML concepts',short:'Overfitting vs underfitting',marks:'5',p:[1,1,1],
+      q:'Compare overfitting with under-fitting.'},
+    {id:'q18',topic:'ML concepts',short:'Classification vs clustering',marks:'5 / 10',p:[1,1,1],
+      q:'Compare classification algorithms with clustering algorithms.',
+      alt:['Sep 2023 and Nov/Dec 2025: 5 marks. Apr/May 2026: 10 marks.']},
+    {id:'q19',topic:'ML concepts',short:'Choosing k in k-means',marks:'5',p:[1,1,1],
+      q:'How do you choose the right number of clusters in k-means clustering? Explain any one method.'},
+    {id:'q20',topic:'ML concepts',short:'Confusion matrix metrics',marks:'10',p:[1,1,1],
+      q:'A machine learning model classifies emails as “spam” (1) or “not spam” (0). Using the confusion matrix below, evaluate accuracy, precision, recall, specificity and F1-score.',
+      x:cm('140','10','5','50'),
+      alt:['Apr/May 2026 used the same task for cancer detection (positive = 1, negative = 0) with this matrix:<br><br>'+cm('397','103','126','142'),
+           'The Nov/Dec 2025 matrix did not show in the copy provided.']},
+    {id:'q21',topic:'ML concepts',short:'Simple linear regression',marks:'10',p:[1,1,1],
+      q:'Demonstrate simple linear regression on a dataset that has two variables: “Marks” (dependent variable) and “Hours of study” (independent variable).',
+      alt:['Apr/May 2026 used “Salary” (dependent) and “Experience” (independent).']},
+    {id:'q22',topic:'ML concepts',short:'Cross validation techniques',marks:'5 / 10',p:[1,1,1],
+      q:'Explain any 2 techniques of cross validation used in Machine Learning.',
+      alt:['Sep 2023 and Nov/Dec 2025: any 2 techniques, 5 marks. Apr/May 2026: “Discuss different techniques”, 10 marks.']},
+
+    {id:'q23',topic:'NLP',short:'Bi-grams and tri-grams',marks:'10',p:[1,1,1],
+      q:'N-grams are a type of linguistic model used in natural language processing. For the sentence below, (i) generate bi-grams and (ii) generate tri-grams.',
+      x:'<div class="quote"><small>Sep 2023 · Nov/Dec 2025</small>Artificial Intelligence is a branch of computer science that focuses on creating intelligent machines capable of performing tasks that typically require human intelligence.</div>'+
+        '<div class="quote"><small>Apr/May 2026</small>The greatest glory in living lies not in never falling, but in rising every time we fall</div>'},
+    {id:'q24',topic:'NLP',short:'Stemming and lemmatization',marks:'10',p:[1,1,1],
+      q:'With examples, demonstrate the stemming and lemmatization normalization techniques.'},
+
+    {id:'q25',topic:'Deployment & cloud',short:'Components of Docker',marks:'10',p:[1,1,1],
+      q:'With a neat diagram, explain the components of Docker.'},
+    {id:'q26',topic:'Deployment & cloud',short:'Two cloud deployment models',marks:'10',p:[1,1,1],
+      q:'Summarize any two cloud deployment models.'},
+    {id:'q27',topic:'Deployment & cloud',short:'Two deployment strategies',marks:'10',p:[0,0,1],
+      q:'Explain any two deployment strategies.'},
+    {id:'q28',topic:'Deployment & cloud',short:'MLOps lifecycle stages',marks:'5 / 10',p:[1,1,1],
+      q:'Briefly explain the different stages involved in the Machine Learning Operations (MLOps) lifecycle.',
+      alt:['Sep 2023 and Nov/Dec 2025: 5 marks. Apr/May 2026 also asks “What are MLOps?” for 10 marks.']},
+
+    {id:'q29',topic:'Ethics',short:'Five ethical challenges in AI',marks:'10',p:[1,1,0],
+      q:'Discuss any five ethical challenges in AI.'}
+  ];
+
+  /* Marks counted per card: the value from the latest paper that asked the question. */
+  var PTS={q1:10,q2:5,q3:5,q4:5,q5:10,q6:10,q7:10,q8:10,q9:10,q10:10,q11:10,q12:10,q13:10,q14:10,q15:10,q16:10,q17:5,q18:10,q19:5,q20:10,q21:10,q22:10,q23:10,q24:10,q25:10,q26:10,q27:10,q28:10,q29:10};
+  var byId={},TOTAL=0;
+  Q.forEach(function(q,i){q.n=i+1;q.pts=PTS[q.id];TOTAL+=q.pts;byId[q.id]=q});
+
+  /* Where each question sat in each paper (2023, 2025, 2026). */
+  var YEARS=['2023','2025','2026'];
+  var LOC={
+    q1:['1a','1a','2a'],q2:[null,null,'1a'],q3:['1b+2b','1b+2b','1b'],q4:['1c','1c',null],q5:['2a','2a','1c'],
+    q6:[null,null,'2b'],q7:['4a','4a',null],q8:['3a','3a','3a'],q9:[null,null,'4b'],q10:[null,null,'3b'],
+    q11:['3b','3b',null],q12:['7b','7b',null],q13:['4b','4b',null],q14:[null,null,'4a'],q15:['6c','6c',null],
+    q16:['5b','5b','5b'],q17:['5c','5c','6a'],q18:['6b','6b','6c'],q19:['6a','6a','6b'],q20:['5a','5a','5a'],
+    q21:['9a','9a','9b'],q22:['8b','8b','8b'],q23:['7a','7a','7a'],q24:['8a','8a','8a'],q25:['9b','9b','9a'],
+    q26:['10a','10a','10a'],q27:[null,null,'7b'],q28:['8c','8c','10b'],q29:['10b','10b',null]
+  };
+  /* Paper layout from the latest paper (Apr/May 2026): 5 sections, 2 full questions each, answer one. */
+  var LAYOUT=[
+    {sec:'I',opts:[{n:1,parts:[['1a','q2'],['1b','q3'],['1c','q5']]},{n:2,parts:[['2a','q1'],['2b','q6']]}]},
+    {sec:'II',opts:[{n:3,parts:[['3a','q8'],['3b','q10']]},{n:4,parts:[['4a','q14'],['4b','q9']]}]},
+    {sec:'III',opts:[{n:5,parts:[['5a','q20'],['5b','q16']]},{n:6,parts:[['6a','q17'],['6b','q19'],['6c','q18']]}]},
+    {sec:'IV',opts:[{n:7,parts:[['7a','q23'],['7b','q27']]},{n:8,parts:[['8a','q24'],['8b','q22']]}]},
+    {sec:'V',opts:[{n:9,parts:[['9a','q25'],['9b','q21']]},{n:10,parts:[['10a','q26'],['10b','q28']]}]}
+  ];
+  var repAll=false;
+  function isRep(q){return !!(q.p[0]&&q.p[1]&&q.p[2])}
+
+  var $=function(s){return document.querySelector(s)};
+  var reduce=false;
+  try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+
+  var answers={},deck=[],pos=0,history=[],view='swipe',tab='dont',busy=false,touched=false,revising=false;
+  var storeKind='local',dbRef=null,saveTimer=null,saving=false,dirty=false,saveFailed=false,resetArmed=false,resetTimer=null;
+  var LS_KEY='aiml-cards-v1';
+
+  /* ---------- storage ---------- */
+  function sanitize(a){
+    var out={};
+    if(a&&typeof a==='object'){
+      Object.keys(a).forEach(function(k){if(byId[k]&&(a[k]==='know'||a[k]==='dont'))out[k]=a[k]});
+    }
+    return out;
+  }
+  function lsRead(){
+    try{var r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null}catch(e){return null}
+  }
+  function lsWrite(){
+    try{localStorage.setItem(LS_KEY,JSON.stringify({answers:answers}))}catch(e){}
+  }
+  function scheduleSave(){
+    lsWrite();dirty=true;
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(flush,500);
+  }
+  function flush(){
+    if(!dbRef||saving||!dirty)return;
+    saving=true;dirty=false;
+    dbRef.set({answers:answers,updatedAt:Date.now()}).then(function(){
+      saving=false;saveFailed=false;paintSaveLine();if(dirty)flush();
+    },function(){
+      saving=false;saveFailed=true;paintSaveLine();
+    });
+  }
+  function paintSaveLine(){
+    var el=$('#saveLine');if(!el)return;
+    if(storeKind==='db'&&!saveFailed)el.textContent='Saved to your account, so your answers are here on any device.';
+    else if(storeKind==='db')el.textContent='Could not reach your account just now. Answers are kept in this browser.';
+    else el.textContent='Saved in this browser only.';
+  }
+  function initStore(){
+    var local=lsRead();
+    if(local&&local.answers)answers=sanitize(local.answers);
+    startSession('new');
+    setView(deck.length?'swipe':'review');
+
+    if(!window.claude||typeof window.claude.use!=='function')return;
+    Promise.all([window.claude.use('db'),window.claude.use('user')]).then(function(r){
+      var db=r[0],user=r[1];
+      if(!db||!user)return null;
+      return user.id().then(function(id){
+        if(!id)return null;
+        var ref=db.doc('data/users/'+id+'/progress');
+        var timeout=new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'))},10000)});
+        return Promise.race([ref.get(),timeout]).then(function(snap){return {ref:ref,snap:snap}});
+      });
+    }).then(function(res){
+      if(!res)return;
+      dbRef=res.ref;storeKind='db';
+      var remote=res.snap.exists?sanitize((res.snap.data()||{}).answers):null;
+      if(remote){
+        if(touched){
+          var merged=Object.assign({},remote,answers);
+          answers=merged;dirty=true;
+        }else{
+          answers=remote;
+          startSession('new');
+          setView(deck.length?'swipe':'review');
+        }
+      }else if(Object.keys(answers).length){
+        dirty=true;
+      }
+      lsWrite();paintSaveLine();updateProgress();
+      if(view==='review')renderReview();
+      flush();
+    }).catch(function(){});
+  }
+
+  /* ---------- session ---------- */
+  function startSession(kind){
+    revising=(kind==='revise');
+    deck=Q.filter(function(q){
+      if(kind==='all')return true;
+      if(kind==='revise')return answers[q.id]==='dont';
+      return !answers[q.id];
+    }).map(function(q){return q.id});
+    pos=0;history=[];
+  }
+  function counts(){
+    var k=0,d=0,km=0,dm=0;
+    Object.keys(answers).forEach(function(id){
+      if(answers[id]==='know'){k++;km+=byId[id].pts}
+      else if(answers[id]==='dont'){d++;dm+=byId[id].pts}
+    });
+    return {k:k,d:d,n:Q.length-k-d,km:km,dm:dm,nm:TOTAL-km-dm};
+  }
+  function updateProgress(){
+    var c=counts(),done=c.k+c.d;
+    $('#fill').style.width=(done/Q.length*100)+'%';
+    $('#tally').innerHTML='<span><b>'+done+'</b> of '+Q.length+' answered</span><span class="k">Know <b>'+c.k+'</b></span><span class="d">Don’t know <b>'+c.d+'</b></span>';
+  }
+
+  /* ---------- card markup ---------- */
+  function papersHTML(q){
+    return '<ul class="papers" aria-label="Papers where this was asked">'+PAPERS.map(function(p,i){
+      return '<li class="'+(q.p[i]?'on':'')+'">'+p+'<span class="sr">'+(q.p[i]?', asked':', not asked')+'</span></li>';
+    }).join('')+'</ul>';
+  }
+  function bodyHTML(q){
+    var alt=q.alt&&q.alt.length?'<div class="alts"><h3>Also asked</h3><ul>'+q.alt.map(function(a){return '<li>'+a+'</li>'}).join('')+'</ul></div>':'';
+    return '<p class="q">'+q.q+'</p>'+(q.x||'')+alt;
+  }
+  function cardHTML(q){
+    return '<article class="card top" role="group" aria-label="Question '+q.n+' of '+Q.length+'">'+
+      '<div class="stamp know" aria-hidden="true">Know it</div><div class="stamp dont" aria-hidden="true">Don’t know</div>'+
+      '<div class="card-top"><div class="l"><span class="num">'+(q.n<10?'0':'')+q.n+'/'+Q.length+'</span><span class="topic">'+q.topic+'</span></div>'+
+      '<span class="marks">'+q.marks+' marks</span></div>'+
+      '<div class="card-body">'+bodyHTML(q)+'</div>'+
+      '<div class="card-foot">'+papersHTML(q)+'</div></article>';
+  }
+
+  /* ---------- swipe view ---------- */
+  function setControls(on){
+    $('#btnKnow').disabled=!on;$('#btnDont').disabled=!on;
+    $('#btnUndo').disabled=!history.length;
+  }
+  function renderSwipe(){
+    var stage=$('#stage');
+    if(pos>=deck.length){
+      var c=counts();
+      var more='';
+      if(c.n>0)more='<button id="doneMore" class="btn" type="button">Swipe the '+c.n+' unanswered</button>';
+      else if(c.d>0)more='<button id="doneMore" class="btn" type="button">Practice the '+c.d+' you don’t know</button>';
+      stage.innerHTML='<div class="done"><h2>'+(deck.length?'This round is finished.':'No cards in this round.')+'</h2>'+
+        '<p>'+(c.n>0?c.n+' cards have no answer yet.':'Every card has an answer.')+'</p>'+
+        '<div class="row"><button id="doneResults" class="btn primary" type="button">See results</button>'+more+'</div></div>';
+      $('#doneResults').addEventListener('click',function(){setView('review')});
+      var dm=$('#doneMore');
+      if(dm)dm.addEventListener('click',function(){startSession(c.n>0?'new':'revise');setView('swipe')});
+      setControls(false);
+      return;
+    }
+    var html='';
+    var behind=Math.min(2,deck.length-pos-1);
+    for(var i=behind;i>=1;i--)html+='<div class="card shell s'+i+'" aria-hidden="true"></div>';
+    html+=cardHTML(byId[deck[pos]]);
+    stage.innerHTML=html;
+    attachDrag(stage.querySelector('.card.top'));
+    setControls(true);
+  }
+
+  function answer(kind){
+    if(busy||pos>=deck.length)return;
+    var id=deck[pos];
+    var el=$('#stage .card.top');
+    busy=true;
+    history.push({id:id,prev:answers[id]||null,pos:pos});
+    answers[id]=kind;touched=true;scheduleSave();
+    updateProgress();
+    function done(){
+      pos++;busy=false;
+      if(pos>=deck.length)setView('review');
+      else renderSwipe();
+    }
+    if(el&&!reduce){
+      var left=kind==='know';
+      var stamp=el.querySelector('.stamp.'+kind);
+      if(stamp)stamp.style.opacity=1;
+      el.classList.remove('drag');
+      el.style.animation='none';
+      el.style.transition='transform .22s ease-in, opacity .22s ease-in';
+      el.style.transform='translateX('+(left?'-130%':'130%')+') rotate('+(left?-14:14)+'deg)';
+      el.style.opacity='0';
+      setTimeout(done,220);
+    }else done();
+  }
+  function undo(){
+    if(busy||!history.length)return;
+    var h=history.pop();
+    if(h.prev)answers[h.id]=h.prev;else delete answers[h.id];
+    pos=h.pos;scheduleSave();
+    if(view!=='swipe')setView('swipe');else{renderSwipe();updateProgress()}
+  }
+
+  function attachDrag(el){
+    if(!el)return;
+    var sx=0,sy=0,dx=0,active=false,moved=false,pid=null;
+    var kn=el.querySelector('.stamp.know'),dn=el.querySelector('.stamp.dont');
+    function reset(){
+      el.classList.remove('drag');el.style.transform='';kn.style.opacity=0;dn.style.opacity=0;
+    }
+    el.addEventListener('pointerdown',function(e){
+      if(busy||(e.pointerType==='mouse'&&e.button!==0))return;
+      if(e.target.closest('[data-noswipe]'))return;
+      active=true;moved=false;sx=e.clientX;sy=e.clientY;dx=0;pid=e.pointerId;
+    });
+    el.addEventListener('pointermove',function(e){
+      if(!active||e.pointerId!==pid)return;
+      dx=e.clientX-sx;var dy=e.clientY-sy;
+      if(!moved){
+        if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy)*1.2){
+          moved=true;
+          try{el.setPointerCapture(pid)}catch(_){}
+          el.classList.add('drag');
+        }else return;
+      }
+      el.style.transform='translateX('+dx+'px) rotate('+(dx/22)+'deg)';
+      var r=Math.min(1,Math.abs(dx)/90);
+      kn.style.opacity=dx<0?r:0;
+      dn.style.opacity=dx>0?r:0;
+    });
+    el.addEventListener('pointerup',function(e){
+      if(!active||e.pointerId!==pid)return;
+      active=false;
+      if(moved&&Math.abs(dx)>100)answer(dx<0?'know':'dont');
+      else reset();
+    });
+    el.addEventListener('pointercancel',function(){active=false;reset()});
+  }
+
+  /* ---------- results view ---------- */
+  function renderReview(){
+    var c=counts(),done=c.k+c.d;
+    var root=$('#reviewView');
+    var list=Q.filter(function(q){
+      var a=answers[q.id]||'none';
+      return tab==='dont'?a==='dont':tab==='know'?a==='know':a==='none';
+    });
+    var emptyMsg={
+      dont:'Nothing here yet. Cards you swipe right land here.',
+      know:'Nothing here yet. Cards you swipe left land here.',
+      none:'You have answered every card.'
+    }[tab];
+    var items=list.map(function(q){
+      var acts=tab==='dont'?'<button class="btn small know" type="button" data-move="know" data-id="'+q.id+'">I know this now</button>':
+        tab==='know'?'<button class="btn small dont" type="button" data-move="dont" data-id="'+q.id+'">Move to don’t know</button>':
+        '<button class="btn small know" type="button" data-move="know" data-id="'+q.id+'">I know this</button><button class="btn small dont" type="button" data-move="dont" data-id="'+q.id+'">Don’t know</button>';
+      return '<details class="it"><summary><span class="t">'+q.short+'</span><span class="mk">'+q.pts+' marks</span><span class="chev" aria-hidden="true">▾</span></summary>'+
+        '<div class="it-body">'+bodyHTML(q)+papersHTML(q)+'<div class="row">'+acts+'</div></div></details>';
+    }).join('');
+
+    root.innerHTML=
+      '<div><h2>Your results</h2><p class="sub">'+done+' of '+Q.length+' cards answered</p></div>'+
+      '<div class="score">'+
+        '<div class="sc get"><span class="lab">Marks you get</span><span class="big">'+c.km+'</span><span class="of">of '+TOTAL+' · '+c.k+' known</span></div>'+
+        '<div class="sc lose"><span class="lab">Marks you lose</span><span class="big">'+c.dm+'</span><span class="of">of '+TOTAL+' · '+c.d+' not known</span></div>'+
+      '</div>'+
+      '<div class="bar" role="img" aria-label="'+c.km+' marks known, '+c.dm+' marks not known, '+c.nm+' marks unanswered out of '+TOTAL+'"><i class="bk" style="width:'+(c.km/TOTAL*100)+'%"></i><i class="bd" style="width:'+(c.dm/TOTAL*100)+'%"></i></div>'+
+      '<p class="note">'+(c.n?c.nm+' marks ('+c.n+' cards) are not answered yet. ':'')+'Each card counts the marks from the latest paper that asked it.</p>'+
+      '<div class="row">'+
+        '<button id="practice" class="btn primary" type="button"'+(c.d?'':' disabled')+'>Practice the '+c.d+' I don’t know</button>'+
+        (c.n?'<button id="resume" class="btn" type="button">Swipe the '+c.n+' left</button>':'')+
+      '</div>'+
+      '<div class="tabs" role="group" aria-label="Show">'+
+        '<button class="tab" type="button" data-tab="dont" aria-pressed="'+(tab==='dont')+'">Don’t know<span class="c">'+c.d+'</span></button>'+
+        '<button class="tab" type="button" data-tab="know" aria-pressed="'+(tab==='know')+'">Know<span class="c">'+c.k+'</span></button>'+
+        '<button class="tab" type="button" data-tab="none" aria-pressed="'+(tab==='none')+'">Not yet<span class="c">'+c.n+'</span></button>'+
+      '</div>'+
+      '<p class="subtotal">'+(tab==='dont'?c.d+' questions · '+c.dm+' marks you lose':tab==='know'?c.k+' questions · '+c.km+' marks you get':c.n+' questions · '+c.nm+' marks not counted yet')+'</p>'+
+      '<div class="list">'+(items||'<p class="empty">'+emptyMsg+'</p>')+'</div>'+
+      '<div class="row"><button id="reset" class="btn small" type="button">'+(resetArmed?'Tap again to erase all answers':'Start over')+'</button></div>'+
+      '<p class="save" id="saveLine"></p>';
+    paintSaveLine();
+  }
+
+  $('#reviewView').addEventListener('click',function(e){
+    var t=e.target.closest('button');if(!t)return;
+    if(t.dataset.tab){tab=t.dataset.tab;renderReview();return}
+    if(t.dataset.move){
+      answers[t.dataset.id]=t.dataset.move;touched=true;scheduleSave();
+      updateProgress();renderReview();return;
+    }
+    if(t.id==='practice'){startSession('revise');setView('swipe');return}
+    if(t.id==='resume'){startSession('new');setView('swipe');return}
+    if(t.id==='reset'){
+      if(!resetArmed){
+        resetArmed=true;renderReview();
+        clearTimeout(resetTimer);
+        resetTimer=setTimeout(function(){resetArmed=false;if(view==='review')renderReview()},4000);
+      }else{
+        resetArmed=false;clearTimeout(resetTimer);
+        answers={};touched=true;scheduleSave();
+        startSession('new');tab='dont';setView('swipe');
+      }
+    }
+  });
+
+  /* ---------- asked in all 3 papers ---------- */
+  function stLabel(s){return s==='know'?'Know':s==='dont'?'Don’t know':'Not yet'}
+  function partHTML(x){
+    var q=x.q,rep=isRep(q),s=answers[q.id]||'none';
+    var chips=YEARS.map(function(y,i){
+      var c=LOC[q.id][i];
+      return '<span class="chip'+(c?' on':'')+'">'+y+' · '+(c?'Q'+c:'–')+'<span class="sr">'+(c?', asked':', not asked')+'</span></span>';
+    }).join('');
+    return '<details class="pt'+(rep?' rep':'')+'" data-id="'+q.id+'"><summary>'+
+      '<span class="row1"><span class="lbl">Q'+x.code+'</span><span class="t">'+q.short+'</span><span class="mk">'+q.pts+' marks</span><span class="chev" aria-hidden="true">▾</span></span>'+
+      '<span class="row2"><span class="locs">'+chips+'</span><span class="st '+s+'">'+stLabel(answers[q.id])+'</span></span></summary>'+
+      '<div class="it-body">'+bodyHTML(q)+'<div class="row">'+
+        '<button class="btn small know" type="button" data-move="know" data-id="'+q.id+'"'+(s==='know'?' disabled':'')+'>I know this</button>'+
+        '<button class="btn small dont" type="button" data-move="dont" data-id="'+q.id+'"'+(s==='dont'?' disabled':'')+'>Don’t know</button>'+
+      '</div></div></details>';
+  }
+  function renderRepeat(){
+    var root=$('#repeatView');
+    var reps=Q.filter(isRep),rm=0,rk=0;
+    reps.forEach(function(q){rm+=q.pts;if(answers[q.id]==='know')rk++});
+    var html='<div><h2>Asked in all 3 papers</h2><p class="sub">'+reps.length+' questions · '+rm+' marks · you know '+rk+' of them</p></div>'+
+      '<p class="note">Each section has 2 full questions and you answer one. The layout is from the latest paper (Apr/May 2026). A filled label means the question came in all 3 papers. The chips show where it sat in each paper.</p>'+
+      '<div class="tabs two" role="group" aria-label="Show">'+
+        '<button class="tab" type="button" data-rep="only" aria-pressed="'+(!repAll)+'">Only all 3 papers</button>'+
+        '<button class="tab" type="button" data-rep="all" aria-pressed="'+repAll+'">Every question</button>'+
+      '</div>';
+    LAYOUT.forEach(function(S){
+      html+='<section class="sec"><h3 class="sec-h">Section '+S.sec+'<span>answer one of two</span></h3>';
+      S.opts.forEach(function(o){
+        var parts=o.parts.map(function(p){return {code:p[0],q:byId[p[1]]}});
+        var total=0,rep=0,known=0;
+        parts.forEach(function(x){
+          total+=x.q.pts;
+          if(isRep(x.q)){rep+=x.q.pts;if(answers[x.q.id]==='know')known+=x.q.pts}
+        });
+        var shown=parts.filter(function(x){return repAll||isRep(x.q)});
+        html+='<div class="opt"><div class="opt-h"><h4>Question '+o.n+'</h4><span class="meta"><span>'+rep+' of '+total+' marks came in all 3 papers</span>'+
+          (rep?'<span>You know '+known+' of those '+rep+' marks</span>':'')+'</span></div>';
+        html+=shown.length?shown.map(partHTML).join(''):'<p class="empty">No part of this question came in all 3 papers.</p>';
+        html+='</div>';
+      });
+      html+='</section>';
+    });
+    root.innerHTML=html;
+  }
+  $('#repeatView').addEventListener('click',function(e){
+    var t=e.target.closest('button');if(!t)return;
+    var root=$('#repeatView');
+    if(t.dataset.rep){repAll=(t.dataset.rep==='all');renderRepeat();return}
+    if(t.dataset.move){
+      var id=t.dataset.id,top=root.scrollTop;
+      answers[id]=t.dataset.move;touched=true;scheduleSave();updateProgress();
+      renderRepeat();
+      var d=root.querySelector('details[data-id="'+id+'"]');
+      if(d)d.open=true;
+      root.scrollTop=top;
+    }
+  });
+
+  /* ---------- view switching ---------- */
+  function setView(v){
+    view=v;
+    $('#swipeView').hidden=(v!=='swipe');
+    $('#reviewView').hidden=(v!=='review');
+    $('#repeatView').hidden=(v!=='repeat');
+    var btns=document.querySelectorAll('#nav .tab');
+    for(var i=0;i<btns.length;i++)btns[i].setAttribute('aria-pressed',String(btns[i].dataset.view===v));
+    if(v==='swipe')renderSwipe();else if(v==='review')renderReview();else renderRepeat();
+    updateProgress();
+  }
+
+  $('#nav').addEventListener('click',function(e){
+    var t=e.target.closest('button');
+    if(t&&t.dataset.view)setView(t.dataset.view);
+  });
+  $('#btnKnow').addEventListener('click',function(){answer('know')});
+  $('#btnDont').addEventListener('click',function(){answer('dont')});
+  $('#btnUndo').addEventListener('click',undo);
+  document.addEventListener('keydown',function(e){
+    if(view!=='swipe'||e.metaKey||e.ctrlKey||e.altKey)return;
+    if(e.target&&e.target.closest&&e.target.closest('.tbl'))return;
+    if(e.key==='ArrowLeft'){e.preventDefault();answer('know')}
+    else if(e.key==='ArrowRight'){e.preventDefault();answer('dont')}
+    else if(e.key==='Backspace'||e.key==='z'){e.preventDefault();undo()}
+  });
+
+  initStore();
+})();
+</script>
+
+</body></html>
